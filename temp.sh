@@ -13,7 +13,7 @@ while true; do
 	temper-poll | sed -n 's/Device.*: *\(.*\)°C *\(.*\)°F.*$/temperature{unit="C",} \1\ntemperature{unit="F",} \2/p' >> $TEMPERATURE_FILE
 
 	git add $TEMPERATURE_FILE
-	git commit -m "$(date --iso-8601=seconds)"
+	git commit -m "Temperature update from $(date --iso-8601=seconds)"
 	git push
 
 	sleep $SLEEP_SECONDS
