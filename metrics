@@ -1,4 +1,4 @@
 # HELP temperature Temperature from sensor
 # TYPE temperature gauge
-temperature{unit="C",} 19.5
-temperature{unit="F",} 67.1
+temperature{unit="C",} 19.6
+temperature{unit="F",} 67.3
