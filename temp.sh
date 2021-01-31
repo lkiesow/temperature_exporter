@@ -1,23 +1,25 @@
 #!/bin/sh
 
+set -o nounset
+set -o errexit
+
 TEMPERATURE_FILE="$(dirname "$(readlink -f "$0")")/metrics"
+S3CFG_FILE="$(dirname "$(readlink -f "$0")")/s3cfg"
+S3_LOCATION="sensors/temperature-server/metrics"
 SLEEP_SECONDS=60
 
-# GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa_example"
-# export GIT_SSH_COMMAND
-# git config core.sshCommand "ssh -i ~/.ssh/id_rsa_example -F /dev/null"
+if [ ! -f "${S3CFG_FILE}" ]; then
+	echo "Error: Configuration for s3cmd is missing."
+	echo "       Expecting it to be at ${S3CFG_FILE}."
+	exit 1
+fi
 
 while true; do
 	echo '# HELP temperature Temperature from sensor' > $TEMPERATURE_FILE
 	echo '# TYPE temperature gauge' >> $TEMPERATURE_FILE
 	temper-poll | sed -n 's/Device.*: *\(.*\)°C *\(.*\)°F.*$/temperature{unit="C",} \1\ntemperature{unit="F",} \2/p' >> $TEMPERATURE_FILE
 
-	git add $TEMPERATURE_FILE
-	git commit --author='Temperature Bot <bot@lkiesow.io>' -m "Temperature update from $(date --iso-8601=seconds)"
-	git push
+	s3cmd -c "${S3CFG_FILE}" put "${TEMPERATURE_FILE}" "s3://${S3_LOCATION}"
 
 	sleep $SLEEP_SECONDS
-
-	git fetch origin
-	git reset --hard origin/main
 done
