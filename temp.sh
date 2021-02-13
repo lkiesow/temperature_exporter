@@ -15,11 +15,16 @@ if [ ! -f "${S3CFG_FILE}" ]; then
 fi
 
 while true; do
-	echo '# HELP temperature Temperature from sensor' > $TEMPERATURE_FILE
-	echo '# TYPE temperature gauge' >> $TEMPERATURE_FILE
-	temper-poll | sed -n 's/Device.*: *\(.*\)°C *\(.*\)°F.*$/temperature{unit="C",} \1\ntemperature{unit="F",} \2/p' >> $TEMPERATURE_FILE
+	echo '# HELP temperature Temperature from sensor' > "${TEMPERATURE_FILE}.tmp"
+	echo '# TYPE temperature gauge' >> "${TEMPERATURE_FILE}.tmp"
+	temper-poll | sed -n 's/Device.*: *\(.*\)°C *\(.*\)°F.*$/temperature{unit="C",} \1\ntemperature{unit="F",} \2/p' >> "${TEMPERATURE_FILE}.tmp"
 
-	s3cmd -c "${S3CFG_FILE}" put "${TEMPERATURE_FILE}" "s3://${S3_LOCATION}"
+  if diff -q "${TEMPERATURE_FILE}" "${TEMPERATURE_FILE}.tmp"; then
+    rm "${TEMPERATURE_FILE}.tmp"
+  else
+    mv "${TEMPERATURE_FILE}.tmp" "${TEMPERATURE_FILE}"
+    s3cmd -c "${S3CFG_FILE}" put "${TEMPERATURE_FILE}" "s3://${S3_LOCATION}"
+  fi
 
 	sleep $SLEEP_SECONDS
 done
