@@ -1,0 +1,7 @@
+[Unit]
+Description=Read and publish temperature
+
+[Service]
+Type=simple
+User=temper
+ExecStart=/opt/temperature_exporter/temp.sh

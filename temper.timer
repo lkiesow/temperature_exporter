@@ -1,0 +1,9 @@
+[Unit]
+Description=Trigger temperature reads
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=60s
+
+[Install]
+WantedBy=multi-user.target
