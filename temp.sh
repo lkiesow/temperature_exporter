@@ -3,25 +3,15 @@
 set -o nounset
 set -o errexit
 
-TEMPERATURE_FILE="$(dirname "$(readlink -f "$0")")/metrics"
-S3CFG_FILE="$(dirname "$(readlink -f "$0")")/s3cfg"
-S3_LOCATION="sensors/temperature-server/metrics"
+TEMPERATURE_FILE=/srv/www/metrics/temperature
+TMP_FILE="$(dirname "$(readlink -f "$0")")/metrics.tmp"
 
-if [ ! -f "${S3CFG_FILE}" ]; then
-  echo "Error: Configuration for s3cmd is missing."
-  echo "       Expecting it to be at ${S3CFG_FILE}."
-  exit 1
-fi
+echo '# HELP temperature Temperature from sensor' > "${TMP_FILE}"
+echo '# TYPE temperature gauge' >> "${TMP_FILE}"
+temper-poll | sed -n 's/Device.*: *\(.*\)°C *\(.*\)°F.*$/temperature{unit="C",} \1\ntemperature{unit="F",} \2/p' >> "${TMP_FILE}"
+echo '# HELP updated Time stamp of update' >> "${TMP_FILE}"
+echo '# TYPE updated counter' >> "${TMP_FILE}"
+echo "updated $(date +%s)" >> "${TMP_FILE}"
 
-echo '# HELP temperature Temperature from sensor' > "${TEMPERATURE_FILE}.tmp"
-echo '# TYPE temperature gauge' >> "${TEMPERATURE_FILE}.tmp"
-temper-poll | sed -n 's/Device.*: *\(.*\)°C *\(.*\)°F.*$/temperature{unit="C",} \1\ntemperature{unit="F",} \2/p' >> "${TEMPERATURE_FILE}.tmp"
-
-if diff -q "${TEMPERATURE_FILE}" "${TEMPERATURE_FILE}.tmp"; then
-  rm "${TEMPERATURE_FILE}.tmp"
-  echo No temperatire changes
-else
-  mv "${TEMPERATURE_FILE}.tmp" "${TEMPERATURE_FILE}"
-  echo Temperature has changed. Uploading...
-  s3cmd -c "${S3CFG_FILE}" put "${TEMPERATURE_FILE}" "s3://${S3_LOCATION}"
-fi
+cat "${TMP_FILE}" > "${TEMPERATURE_FILE}"
+rm "${TMP_FILE}"
